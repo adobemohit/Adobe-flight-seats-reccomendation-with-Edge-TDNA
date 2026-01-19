@@ -1,0 +1,1112 @@
+<script>
+    // seats DATA from EDGE : '${aep._etihadairways.guestInfo.preferences.preferredSeatCharacteristic default=""}';
+    // seats DATA from Target Home Page Edge : '${profile.seatTDNA}';
+        debugger;
+        var seatsTarget = "${profile.seatTDNA}";
+        // ========== CONSTANTS - Cached at top for performance ==========
+        var CONSTANTS = {
+            // Configuration
+            HIGHLIGHT_LIMIT: 5,
+            WINDOW_BIAS: 0.7,
+            WINDOW_PERCENTAGE_THRESHOLD: 30,
+            WINDOW_RATIO_MULTIPLIER: 1.5,
+            WINDOW_SPLIT_RATIO: 0.7,
+            AISLE_SPLIT_RATIO: 0.3,
+            PRICE_REGEX: /[^0-9.]/g,
+            TAB_CLICK_DELAY: 3000,
+            SHOW_TOOLTIP: true, // Set to false to disable tooltip functionality
+            
+            // Selectors
+            SELECTOR_SELECTABLE_BUTTON: ".selectable-button",
+            SELECTOR_DISCOUNT_PRICE: ".legend-section-seats .discount-price, .right-side-legend-section .discount-price",
+            SELECTOR_SEATMAP: "refx-seatmap-matrix-pres",
+            SELECTOR_AVAILABLE: ".available",
+            SELECTOR_FRONT_SEAT: ".available.front-seat",
+            SELECTOR_SEAT_CHAR: ".seat-characteristics-sr",
+            SELECTOR_LEGEND_DESKTOP: ".legend-desktop",
+			SELECTOR_LEGEND_MOBILE: ".legend-mobile",
+            SELECTOR_LEGEND_LABEL: ".at-legend-label",
+			SELECTOR_LEGEND_LABEL_MOBILE: ".at-legend-label-mob",
+            SELECTOR_SEAT_NUMBER: ".seat-number",
+            SELECTOR_CONFIRM_BTN: ".confirm-seat-btn",
+            SELECTOR_CLOSE_BTN: ".close-btn",
+            SELECTOR_ARROW_LEFT: ".arrow-left",
+            SELECTOR_ARROW_RIGHT: ".arrow-right",
+            SELECTOR_SEAT_COUNTER: ".seat-counter",
+            SELECTOR_LEGEND_SECTION: ".right-side-legend-section",
+            SELECTOR_SEAT_TITLE: ".legend-section-seat-title",
+            SELECTOR_TAB_LIST: ".mat-mdc-tab-list",
+            SELECTOR_TAB: ".mdc-tab",
+            
+            // Class names
+            CLASS_HIGHLIGHTED_SEAT: "highlighted-seat",
+            CLASS_NUDGE: "nudge",
+            CLASS_LEGEND_SECTION: "legend-section",
+            CLASS_LEGEND_SEATS: "legend-section-seats",
+            CLASS_LEGEND_ROW: "legend-section-row",
+            CLASS_FACILITIES_LIST: "legend-section-facilities-list",
+            CLASS_NG_STAR_INSERTED: "ng-star-inserted",
+            CLASS_LEGEND_TITLE: "legend-section-title",
+            CLASS_REC_ICON: "rec-icon",
+            
+            // Seat type strings
+            STR_WINDOW: "window",
+            STR_AISLE: "aisle",
+            STR_WINDOW_UPPER: "WINDOW",
+            STR_AISLE_UPPER: "AISLE",
+            STR_DEFAULT_SEAT: "AISLE",
+            STR_WINDOW_SEAT: "Window Seat",
+            STR_AISLE_SEAT: "Aisle Seat",
+            
+            // Seat title mappings
+            TITLE_EXIT_ROW: "Exit row",
+            TITLE_BULKHEAD: "Bulkhead",
+            TITLE_FORWARD_ZONE: "Forward zone",
+            TITLE_MIDDLE_ZONE: "Middle zone",
+            TITLE_REAR_ZONE: "Rear zone",
+            
+            // Selector mappings
+            SELECTOR_EXIT_ROW: "seat-characteristic-exit-row",
+            SELECTOR_BULKHEAD: "seat-characteristic-bulkhead",
+            SELECTOR_FORWARD_ZONE: "seat-characteristic-forward-zone",
+            SELECTOR_MIDDLE_ZONE: "seat-characteristic-middle-zone",
+            SELECTOR_REAR_ZONE: "seat-characteristic-rear-zone",
+            
+            // Console messages
+            MSG_NO_VALID_PRICES: "No valid prices found",
+            MSG_HIGHEST_PRICE: "Highest price:",
+            MSG_LOWEST_PRICE: "Lowest price:",
+            MSG_ONLY_AISLE: "Only aisle seats available - highlighting all aisle seats",
+            MSG_ONLY_WINDOW: "Only window seats available - highlighting all window seats",
+            MSG_USING_PREFERENCE: "Using saved preference:",
+            MSG_TOTAL_SEATS: "Total seats: ",
+            MSG_WINDOW: "Window: ",
+            MSG_AISLE: "Aisle: ",
+            MSG_TARGET: "Target: ",
+            MSG_WINDOW_SEAT: " window, ",
+            MSG_AISLE_SEAT: " aisle seats",
+            MSG_HIGHLIGHTING_WINDOW: "Highlighting window seat:",
+            MSG_HIGHLIGHTING_AISLE: "Highlighting aisle seat:",
+            MSG_HIGHLIGHTING_SEAT: "Highlighting seat:",
+            MSG_PREFERRED: "Preferred:",
+            MSG_COUNT: "Count:",
+            MSG_HIGHLIGHTED: "Highlighted: ",
+            MSG_HIGHLIGHTED_SEAT_ADDED: "Highlighted seat added",
+            
+            // Math constants
+            MATH_INFINITY: Infinity,
+            MATH_NEG_INFINITY: -Infinity,
+            MATH_RANDOM_THRESHOLD: 0.7,
+            MATH_SKIP_THRESHOLD: 0
+        };
+        
+        // ========== VARIABLES ==========
+        var nudgeSeen;
+        var guestId = '${aep._etihadairways.identities.etihadGuestID default=""}';
+        var seatData = '${aep._etihadairways.guestInfo.preferences.preferredSeatCharacteristic default=""}' || CONSTANTS.STR_DEFAULT_SEAT;
+        var seatTDNA = '${aep._etihadairways.guestInfo.preferences.preferredSeatCharacteristic default=""}';
+        if(!(seatTDNA && seatTDNA.length > 0)) {
+            seatTDNA = seatsTarget;
+        }
+        var executedSeat;
+        var heighLightCount = 0;
+        var heighLightLimit = CONSTANTS.HIGHLIGHT_LIMIT;
+        var useMaxPrice = true;
+        var clickedFirst;
+        if (!window.location.pathname.includes("seatmap")) {
+            clickedFirst = false;
+        }
+        
+        // ========== UTILITY FUNCTIONS ==========
+        function shouldSkip() {
+            return Math.random() < CONSTANTS.MATH_SKIP_THRESHOLD;
+        }
+    
+        function preferWindow() {
+            return Math.random() < CONSTANTS.MATH_RANDOM_THRESHOLD;
+        }
+        
+        // Cached DOM methods
+        var docQuerySelector = document.querySelector.bind(document);
+        var docQuerySelectorAll = document.querySelectorAll.bind(document);
+        var docCreateElement = document.createElement.bind(document);
+        var docGetElementsByTagName = document.getElementsByTagName.bind(document);
+    
+        Flickerlessly = window.Flickerlessly || {}, !function (t) {
+            "use strict";
+            var e = function (t, e, a, n) {
+                var i = "atNodeInserted" + t, s = "@keyframes " + i + " {from {opacity:0.99} to {opacity:1} }\n";
+                s += e + "{animation-duration:0.001s;animation-name:" + i + ";visibility:visible}";
+                var o = document.getElementsByTagName("head")[0];
+                if (o) {
+                    var r = document.createElement("style");
+                    r.setAttribute("type", "text/css"),
+                        r.styleSheet ? r.styleSheet.cssText = s : r.appendChild(document.createTextNode(s)),
+                        o.insertBefore(r, o.firstChild)
+                }
+                var c = function (t) {
+                    if (t.animationName === i && "object" == typeof t.target) {
+                        var s = n === !0 || n === !1 && null === t.target.getAttribute("data-flk-success") ? !0 : !1;
+                        "function" == typeof a && s && (a(t.target), t.target.setAttribute("data-flk-success", i)),
+                            t.target.style.visibility = "visible"
+                    }
+                };
+                ["animationstart", "MSAnimationStart", "webkitAnimationStart"].forEach(function (t, e) {
+                    document.addEventListener(t, c, !1)
+                })
+            };
+            t.onReady = function () {
+                for (var t = 0; t < arguments.length; t++) {
+                    var a = arguments[t], n = a.selector, i = a.success || null, s = a.persist || !1, o = Math.floor(100 * Math.random() + 1);
+                    e(o, n, i, s)
+                }
+            }
+        }(Flickerlessly);
+  Flickerlessly.onReady({
+            selector: ".confirm-seat-button",
+            success: function (el) {
+document.querySelector(".confirm-seat-button").addEventListener("click", function() {
+ document.querySelectorAll(".seatnudge").forEach(element => {
+                element.remove();
+            });
+});
+			}
+			});
+    Flickerlessly.onReady({
+            selector: "div.seatnudge",
+            success: function (el) {
+                if(document.querySelectorAll(".selectable-button.selected-active").length>0){
+
+ document.querySelectorAll(".seatnudge").forEach(element => {
+                element.remove();
+            });
+
+};
+			}
+			});
+  
+  
+
+    
+        Flickerlessly.onReady({
+            selector: ".selectable-button",
+            success: function (el) {
+                // Function to show recommendation nudge
+                var nudgeStyleAdded = false;
+                    // Nudge CSS - formatted for easy editing
+                    var nudgeStyleContent = 
+                        ".nudge {" +
+                            "position: fixed;" +
+                            "bottom: 20px;" +
+                            "right: 20px;" +
+                            "background: #fff;" +
+                            "padding: 16px 20px;" +
+                            "border-radius: 8px;" +
+                            "box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);" +
+                            "display: flex;" +
+                            "flex-direction: column;" +
+                            "align-items: center;" +
+                            "justify-content: center;" +
+                            "z-index: 9999;" +
+                            "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;" +
+                            "opacity: 0;" +
+                            "transform: translateY(20px);" +
+                            "animation: slideUp 0.3s ease-out forwards;" +
+                            "width: 280px;" +
+                        "}" +
+                        ".nudge p {" +
+                            "margin: 0;" +
+                            "font-size: 13px;" +
+                            "font-weight: 500;" +
+                            "color: #333;" +
+                            "line-height: 1.4;" +
+                        "}" +
+                        ".confirm-seat-btn {" +
+                            "margin-top: 8px;" +
+                            "background-color: #b08747;" +
+                            "color: white;" +
+                            "border: none;" +
+                            "padding: 8px 16px;" +
+                            "border-radius: 4px;" +
+                            "cursor: pointer;" +
+                            "font-size: 13px;" +
+                            "font-weight: 500;" +
+                            "transition: background-color 0.3s;" +
+                            "height: 40px;" +
+                            "display: flex;" +
+                            "align-items: center;" +
+                            "justify-content: center;" +
+                            "text-transform: none;" +
+                            "letter-spacing: 0.3px;" +
+                        "}" +
+                        ".confirm-seat-btn:hover {" +
+                            "background-color: #9c7339;" +
+                        "}" +
+                        ".close-btn {" +
+                            "position: absolute;" +
+                            "top: 8px;" +
+                            "right: 8px;" +
+                            "font-size: 20px;" +
+                            "color: #999;" +
+                            "cursor: pointer;" +
+                            "line-height: 1;" +
+                            "width: 24px;" +
+                            "height: 24px;" +
+                            "display: flex;" +
+                            "align-items: center;" +
+                            "justify-content: center;" +
+                            "border-radius: 50%;" +
+                            "transition: all 0.2s;" +
+                        "}" +
+                        ".close-btn:hover {" +
+                            "color: #333;" +
+                            "background-color: #f5f5f5;" +
+                        "}" +
+                        ".nudge-nav {" +
+                            "display: flex;" +
+                            "align-items: center;" +
+                            "justify-content: space-between;" +
+                            "width: 100%;" +
+                            "margin-top: 10px;" +
+                        "}" +
+                        ".arrow-btn {" +
+                            "background-color: transparent;" +
+                            "color: #2e4755;" +
+                            "border: none;" +
+                            "padding: 0;" +
+                            "border-radius: 50%;" +
+                            "cursor: pointer;" +
+                            "font-size: 24px;" +
+                            "transition: opacity 0.3s;" +
+                            "width: 40px;" +
+                            "height: 40px;" +
+                            "display: flex;" +
+                            "align-items: center;" +
+                            "justify-content: center;" +
+                            "line-height: 1;" +
+                        "}" +
+                        ".arrow-btn:hover {" +
+                            "opacity: 0.7;" +
+                        "}" +
+                        ".arrow-btn:disabled {" +
+                            "opacity: 0.3;" +
+                            "cursor: not-allowed;" +
+                        "}" +
+                        ".seat-counter {" +
+                            "font-size: 11px;" +
+                            "font-weight: 600;" +
+                            "color: #2e4755;" +
+                            "background-color: #f0f4f7;" +
+                            "padding: 4px 10px;" +
+                            "border-radius: 12px;" +
+                            "margin: 6px 0;" +
+                            "letter-spacing: 0.5px;" +
+                            "text-transform: uppercase;" +
+                        "}" +
+                        ".seat-tooltip {" +
+                            "position: absolute;" +
+                            "bottom: 100%;" +
+                            "left: 50%;" +
+                            "transform: translateX(-50%);" +
+                            "background-color: #2e4755;" +
+                            "color: white;" +
+                            "padding: 4px 8px;" +
+                            "border-radius: 4px;" +
+                            "font-size: 10px !important;" +
+                            "white-space: nowrap;" +
+                            "z-index: 10000;" +
+                            "margin-bottom: 6px;" +
+                            "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);" +
+                            "pointer-events: none;" +
+                            "line-height: 1.3;" +
+                            "opacity: 1;" +
+                            "visibility: visible;" +
+                            "transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;" +
+                            "transition-delay: 0.1s;" +
+                        "}" +
+                        ".seat-tooltip.hidden {" +
+                            "opacity: 0;" +
+                            "visibility: hidden;" +
+                            "transition-delay: 0s;" +
+                        "}" +
+                        ".seat-tooltip::after {" +
+                            "content: '';" +
+                            "position: absolute;" +
+                            "top: 100%;" +
+                            "left: 50%;" +
+                            "transform: translateX(-50%);" +
+                            "border: 6px solid transparent;" +
+                            "border-top-color: #2e4755;" +
+                        "}" +
+                        "@keyframes slideUp {" +
+                            "0% { opacity: 0; transform: translateY(20px); }" +
+                            "100% { opacity: 1; transform: translateY(0); }" +
+                        "}" +
+                        "@keyframes tooltipBounce {" +
+                            "0%, 100% { transform: translateX(-50%) translateY(0); }" +
+                            "50% { transform: translateX(-50%) translateY(-5px); }" +
+                        "}" +
+                        ".seat-tooltip.animated {" +
+                            "animation: tooltipBounce 1.5s ease-in-out infinite;" +
+                        "}";
+                    
+                    // Store recommended seats for navigation
+                    var recommendedSeats = [];
+                    var currentSeatIndex = 0;
+                    var nudgeElement = null;
+                    var currentTooltip = null;
+                    
+                    var currentTooltipSeat = null;
+                    var tooltipHoverHandlers = {
+                        mouseenter: null,
+                        mouseleave: null
+                    };
+                    var seatButtonHandlers = [];
+                    var highlightedSeatHandlers = [];
+                    var tooltipFadeInTimeout = null;
+                    var tooltipJustShownFromNudge = false;
+                    var seatmapMatrixHandlers = {
+                        element: null,
+                        mouseenter: null,
+                        mouseleave: null
+                    };
+                    
+                    function removeTooltip() {
+                        // Clear any pending fade-in timeout
+                        if (tooltipFadeInTimeout) {
+                            clearTimeout(tooltipFadeInTimeout);
+                            tooltipFadeInTimeout = null;
+                        }
+                        
+                        if (currentTooltip) {
+                            currentTooltip.remove();
+                            currentTooltip = null;
+                        }
+                        if (currentTooltipSeat) {
+                            currentTooltipSeat = null;
+                            tooltipHoverHandlers.mouseenter = null;
+                            tooltipHoverHandlers.mouseleave = null;
+                        }
+                        // Remove seat button handlers
+                        removeSeatButtonHandlers();
+                    }
+                    
+                    function removeSeatButtonHandlers() {
+                        var i;
+                        var len = seatButtonHandlers.length;
+                        for (i = 0; i < len; i++) {
+                            var handler = seatButtonHandlers[i];
+                            if (handler.element && handler.mouseenter && handler.mouseleave) {
+                                handler.element.removeEventListener("mouseenter", handler.mouseenter);
+                                handler.element.removeEventListener("mouseleave", handler.mouseleave);
+                            }
+                        }
+                        seatButtonHandlers = [];
+                    }
+                    
+                    function removeHighlightedSeatHandlers() {
+                        var i;
+                        var len = highlightedSeatHandlers.length;
+                        for (i = 0; i < len; i++) {
+                            var handler = highlightedSeatHandlers[i];
+                            if (handler.element) {
+                                if (handler.mouseenter) {
+                                    handler.element.removeEventListener("mouseenter", handler.mouseenter);
+                                }
+                                if (handler.mouseleave) {
+                                    handler.element.removeEventListener("mouseleave", handler.mouseleave);
+                                }
+                            }
+                        }
+                        highlightedSeatHandlers = [];
+                    }
+                    
+                    function setupHighlightedSeatHandlers() {
+                        removeHighlightedSeatHandlers();
+                        
+                        if (!recommendedSeats || recommendedSeats.length === 0) return;
+                        
+                        var i;
+                        var len = recommendedSeats.length;
+                        var mouseenterHandler;
+                        var mouseleaveHandler;
+                        
+                        for (i = 0; i < len; i++) {
+                            (function(seatIndex) {
+                                var seatEl = recommendedSeats[seatIndex].seat;
+                                
+                                mouseenterHandler = function() {
+                                    // Hide and remove tooltip when hovering on highlighted seat
+                                    removeTooltip();
+                                    
+                                    if (currentSeatIndex !== seatIndex && nudgeElement) {
+                                        currentSeatIndex = seatIndex;
+                                        // When manually hovering, don't show tooltip and don't scroll
+                                        // skipTooltip = true prevents tooltip from being shown
+                                        updateNudgeContent(false, true); // Don't scroll, skip tooltip
+                                    }
+                                };
+                                
+                                mouseleaveHandler = function() {
+                                    // Don't show tooltip when leaving highlighted seat
+                                    // Tooltips should only appear when navigating via nudge buttons, not on hover
+                                };
+                                
+                                seatEl.addEventListener("mouseenter", mouseenterHandler);
+                                seatEl.addEventListener("mouseleave", mouseleaveHandler);
+                                
+                                highlightedSeatHandlers.push({
+                                    element: seatEl,
+                                    mouseenter: mouseenterHandler,
+                                    mouseleave: mouseleaveHandler
+                                });
+                            })(i);
+                        }
+                    }
+                    
+                    function setupSeatButtonHandlers() {
+                        // Removed tooltip hiding functionality on seat hover
+                        // Tooltips are now only controlled by seatmap matrix hover
+                        removeSeatButtonHandlers();
+                    }
+                    
+                    function setupSeatmapMatrixHandlers() {
+                        // Remove existing handlers if any
+                        if (seatmapMatrixHandlers.element && seatmapMatrixHandlers.mouseenter && seatmapMatrixHandlers.mouseleave) {
+                            seatmapMatrixHandlers.element.removeEventListener("mouseenter", seatmapMatrixHandlers.mouseenter);
+                            seatmapMatrixHandlers.element.removeEventListener("mouseleave", seatmapMatrixHandlers.mouseleave);
+                        }
+                        
+                        // Find the seatmap matrix element
+                        var seatmapMatrix = docQuerySelector(CONSTANTS.SELECTOR_SEATMAP);
+                        if (!seatmapMatrix) {
+                            return;
+                        }
+                        
+                        // Create mouseenter handler to hide tooltip
+                        seatmapMatrixHandlers.mouseenter = function() {
+                            if (currentTooltip) {
+                                currentTooltip.classList.add("hidden");
+                            }
+                        };
+                        
+                        // Create mouseleave handler to show tooltip again
+                        seatmapMatrixHandlers.mouseleave = function() {
+                            if (currentTooltip) {
+                                currentTooltip.classList.remove("hidden");
+                            }
+                        };
+                        
+                        // Add event listeners
+                        seatmapMatrix.addEventListener("mouseenter", seatmapMatrixHandlers.mouseenter);
+                        seatmapMatrix.addEventListener("mouseleave", seatmapMatrixHandlers.mouseleave);
+                        
+                        // Store reference
+                        seatmapMatrixHandlers.element = seatmapMatrix;
+                    }
+                    
+                    function addTooltip(seatEl, seatType, seatNumber, forceShow) {
+                        // Check if tooltips are enabled
+                        if (!CONSTANTS.SHOW_TOOLTIP) {
+                            return;
+                        }
+                        
+                        removeTooltip();
+                        
+                        var tooltip = docCreateElement("div");
+                        tooltip.classList.add("seat-tooltip", "animated");
+                        tooltip.innerHTML = "Recommended " + seatType + "<br>Seat No: " + seatNumber;
+                        
+                        // Make seat position relative if not already
+                        var seatPosition = window.getComputedStyle(seatEl).position;
+                        if (seatPosition === "static") {
+                            seatEl.style.position = "relative";
+                        }
+                        
+                        // Start hidden unless forced to show
+                        if (forceShow) {
+                            // When navigating from nudge, show immediately (don't add hidden class)
+                            tooltip.classList.remove("hidden");
+                            tooltipJustShownFromNudge = true;
+                            // Reset flag after a short delay to allow normal hover behavior
+                            setTimeout(function() {
+                                tooltipJustShownFromNudge = false;
+                            }, 100);
+                        } else {
+                            // When manually hovering, start hidden
+                            tooltip.classList.add("hidden");
+                            tooltipJustShownFromNudge = false;
+                        }
+                        seatEl.appendChild(tooltip);
+                        
+                        currentTooltip = tooltip;
+                        currentTooltipSeat = seatEl;
+                        
+                        // Clear any existing fade-in timeout
+                        if (tooltipFadeInTimeout) {
+                            clearTimeout(tooltipFadeInTimeout);
+                            tooltipFadeInTimeout = null;
+                        }
+                        
+                        // Only set fade-in timeout if not forced
+                        if (!forceShow) {
+                            // Default state: fade in after delay
+                            tooltipFadeInTimeout = setTimeout(function() {
+                                if (tooltip && tooltip.parentNode && currentTooltip === tooltip) {
+                                    if (tooltip.classList.contains("hidden")) {
+                                        tooltip.classList.remove("hidden");
+                                    }
+                                }
+                                tooltipFadeInTimeout = null;
+                            }, 50);
+                        }
+                        // If forced, tooltip is already visible
+                        
+                        // Removed hover event listeners on seat element
+                        // Tooltips are now only controlled by seatmap matrix hover
+                    }
+                    
+                    function updateNudgeContent(shouldScroll, skipTooltip) {
+                        if (!nudgeElement || recommendedSeats.length === 0) return;
+                        
+                        // Default to true for backward compatibility (scroll when navigating from nudge)
+                        if (shouldScroll === undefined) {
+                            shouldScroll = true;
+                        }
+                        
+                        // Default to false - show tooltip unless explicitly skipped
+                        if (skipTooltip === undefined) {
+                            skipTooltip = false;
+                        }
+                        
+                        var currentSeat = recommendedSeats[currentSeatIndex];
+                        var seatEl = currentSeat.seat;
+                        var seatType = currentSeat.type;
+                        var seatElNumEl = seatEl.querySelector(CONSTANTS.SELECTOR_SEAT_NUMBER);
+                        var seatElNum = seatElNumEl ? (seatElNumEl.innerHTML || "") : "";
+                        
+                        // Update content
+                        var contentP = nudgeElement.querySelector("p");
+                        if (contentP) {
+                            contentP.innerHTML = "Recommended " + seatType;
+                        }
+                        var seatNoP = nudgeElement.querySelectorAll("p")[1];
+                        if (seatNoP) {
+                            seatNoP.innerHTML = "Seat No : " + seatElNum;
+                        }
+                        
+                        // Update counter
+                        var counter = nudgeElement.querySelector(CONSTANTS.SELECTOR_SEAT_COUNTER);
+                        if (counter) {
+                            counter.innerHTML = (currentSeatIndex + 1) + " / " + recommendedSeats.length;
+                        }
+                        
+                        // Update arrow buttons
+                        var leftArrow = nudgeElement.querySelector(CONSTANTS.SELECTOR_ARROW_LEFT);
+                        var rightArrow = nudgeElement.querySelector(CONSTANTS.SELECTOR_ARROW_RIGHT);
+                        if (leftArrow) {
+                            leftArrow.disabled = currentSeatIndex === 0;
+                        }
+                        if (rightArrow) {
+                            rightArrow.disabled = currentSeatIndex === recommendedSeats.length - 1;
+                        }
+                        
+                        // Remove tooltip from previous seat
+                        removeTooltip();
+                        
+                        // Only add tooltip if not skipping (skipTooltip = false) and tooltips are enabled
+                        if (!skipTooltip && CONSTANTS.SHOW_TOOLTIP) {
+                            // Force show tooltip when navigating from nudge (shouldScroll = true means from nudge)
+                            addTooltip(seatEl, seatType, seatElNum, shouldScroll);
+                        }
+                        
+                        // Scroll to seat only if shouldScroll is true (when navigating from nudge)
+                        if (shouldScroll) {
+                            seatEl.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }
+                    }
+                    
+                    function showNudgeWithNavigation(seatsArray) {
+                        if (!seatsArray || seatsArray.length === 0) return;
+                        
+                        recommendedSeats = seatsArray;
+                        currentSeatIndex = 0;
+                        
+                        // Remove old nudge if exists
+                        if (nudgeElement) {
+                            nudgeElement.remove();
+                        }
+                        
+                        // Create nudge element
+                        nudgeElement = docCreateElement("div");
+                        nudgeElement.classList.add(CONSTANTS.CLASS_NUDGE);
+                      nudgeElement.classList.add("seatnudge");
+                        
+                        var currentSeat = recommendedSeats[0];
+                        var seatEl = currentSeat.seat;
+                        var seatType = currentSeat.type;
+                        var seatElNumEl = seatEl.querySelector(CONSTANTS.SELECTOR_SEAT_NUMBER);
+                        var seatElNum = seatElNumEl ? (seatElNumEl.innerHTML || "") : "";
+                        
+                        nudgeElement.innerHTML = 
+                            "<span class=\"" + CONSTANTS.SELECTOR_CLOSE_BTN.substring(1) + "\">&times;</span>" +
+                            "<p>Recommended " + seatType + "</p>" +
+                            "<p>Seat No : " + seatElNum + "</p>" +
+                            "<div class=\"seat-counter\">1 / " + recommendedSeats.length + "</div>" +
+                            "<div class=\"nudge-nav\">" +
+                                "<button class=\"arrow-btn " + CONSTANTS.SELECTOR_ARROW_LEFT.substring(1) + "\" disabled>&#8249;</button>" +
+                                "<button class=\"" + CONSTANTS.SELECTOR_CONFIRM_BTN.substring(1) + "\">Confirm Seat</button>" +
+                                "<button class=\"arrow-btn " + CONSTANTS.SELECTOR_ARROW_RIGHT.substring(1) + "\"" + (recommendedSeats.length > 1 ? "" : " disabled") + ">&#8250;</button>" +
+                            "</div>";
+                        
+                        // Highlight all recommended seats
+                        var i;
+                        var len = recommendedSeats.length;
+                        for (i = 0; i < len; i++) {
+                            recommendedSeats[i].seat.classList.add(CONSTANTS.CLASS_HIGHLIGHTED_SEAT);
+                        }
+                        
+                        // Add tooltip to first seat (force show on initial display)
+                        addTooltip(seatEl, seatType, seatElNum, true);
+                        seatEl.scrollIntoView({ behavior: "smooth", block: "center" });
+                        
+                        // Confirm button
+                        var confirmBtn = nudgeElement.querySelector(CONSTANTS.SELECTOR_CONFIRM_BTN);
+                        if (confirmBtn) {
+                            confirmBtn.addEventListener("click", function () {
+                                recommendedSeats[currentSeatIndex].seat.click();
+                                nudgeElement.style.display = "none";
+                            });
+                        }
+                        
+                        // Close button
+                        var closeBtn = nudgeElement.querySelector(CONSTANTS.SELECTOR_CLOSE_BTN);
+                        if (closeBtn) {
+                            closeBtn.addEventListener("click", function () {
+                                nudgeElement.style.display = "none";
+                            });
+                        }
+                        
+                        // Left arrow
+                        var leftArrow = nudgeElement.querySelector(CONSTANTS.SELECTOR_ARROW_LEFT);
+                        if (leftArrow) {
+                            leftArrow.addEventListener("click", function () {
+                                if (currentSeatIndex > 0) {
+                                    currentSeatIndex--;
+                                    updateNudgeContent();
+                                }
+                            });
+                        }
+                        
+                        // Right arrow
+                        var rightArrow = nudgeElement.querySelector(CONSTANTS.SELECTOR_ARROW_RIGHT);
+                        if (rightArrow) {
+                            rightArrow.addEventListener("click", function () {
+                                if (currentSeatIndex < recommendedSeats.length - 1) {
+                                    currentSeatIndex++;
+                                    updateNudgeContent();
+                                }
+                            });
+                        }
+                        
+                        // Add styles if not already added
+                        if (!nudgeSeen) {
+                            var style = docCreateElement("style");
+                            style.innerHTML = nudgeStyleContent;
+                            document.head.appendChild(style);
+                            nudgeSeen = true;
+                        }
+                        
+                        // Append to body
+                        document.body.appendChild(nudgeElement);
+                      
+                        
+                        // Setup hover handlers for highlighted seats
+                        setupHighlightedSeatHandlers();
+                        
+                        // Setup hover handlers for seatmap matrix to hide/show tooltips
+                        setupSeatmapMatrixHandlers();
+                    }
+                    
+                    // Function to clear old nudges
+                    function clearOldNudges() {
+                        removeTooltip();
+                        removeHighlightedSeatHandlers();
+                        // Remove seatmap matrix handlers
+                        if (seatmapMatrixHandlers.element && seatmapMatrixHandlers.mouseenter && seatmapMatrixHandlers.mouseleave) {
+                            seatmapMatrixHandlers.element.removeEventListener("mouseenter", seatmapMatrixHandlers.mouseenter);
+                            seatmapMatrixHandlers.element.removeEventListener("mouseleave", seatmapMatrixHandlers.mouseleave);
+                            seatmapMatrixHandlers.element = null;
+                            seatmapMatrixHandlers.mouseenter = null;
+                            seatmapMatrixHandlers.mouseleave = null;
+                        }
+                        if (nudgeElement) {
+                            nudgeElement.remove();
+                            nudgeElement = null;
+                        }
+                        recommendedSeats = [];
+                        currentSeatIndex = 0;
+                    }
+                    
+                    // Function to clear old highlights
+                    function clearOldHighlights() {
+                        var highlightedSeats = document.querySelectorAll("." + CONSTANTS.CLASS_HIGHLIGHTED_SEAT);
+                        var i;
+                        var len = highlightedSeats.length;
+                        for (i = 0; i < len; i++) {
+                            highlightedSeats[i].classList.remove(CONSTANTS.CLASS_HIGHLIGHTED_SEAT);
+                        }
+                    }
+    
+                    // Seat highlighting function
+                    function highlightSeats() {
+                        if (!executedSeat) {
+                            // Clear old highlights and nudges
+                            clearOldHighlights();
+                            clearOldNudges();
+                            
+                            heighLightCount = 0;
+                            executedSeat = true;
+                            var hasRecommendedSeats = false;
+    
+                    // Seat selection logic
+                            var selector = null;
+                    var relatedSeatTitle;
+                            var discountPrices = docQuerySelectorAll(CONSTANTS.SELECTOR_DISCOUNT_PRICE);
+                            var minElement = null;
+                            var minPrice;
+                            var container;
+                            var priceText;
+                            var parsedPrice;
+                            var i;
+                            var len;
+                            var seatmapElement;
+                            var frontSeats;
+    
+                    if (discountPrices && discountPrices.length > 0) {
+                        minPrice = useMaxPrice ? CONSTANTS.MATH_NEG_INFINITY : CONSTANTS.MATH_INFINITY;
+                        
+                        if (discountPrices.length === 1) {
+                            minElement = discountPrices[0];
+                            priceText = minElement.textContent;
+                            if (priceText) {
+                                parsedPrice = parseFloat(priceText.trim().replace(CONSTANTS.PRICE_REGEX, ""));
+                                if (!isNaN(parsedPrice)) {
+                                    minPrice = parsedPrice;
+                                }
+                            }
+                        } else {
+                            len = discountPrices.length;
+                            for (i = 0; i < len; i++) {
+                                priceText = discountPrices[i].textContent;
+                                if (priceText) {
+                                    parsedPrice = parseFloat(priceText.trim().replace(CONSTANTS.PRICE_REGEX, ""));
+                                    if (!isNaN(parsedPrice)) {
+                                        if (useMaxPrice) {
+                                            if (parsedPrice > minPrice) {
+                                                minPrice = parsedPrice;
+                                                minElement = discountPrices[i];
+                                            }
+                                        } else {
+                                            if (parsedPrice < minPrice) {
+                                                minPrice = parsedPrice;
+                                                minElement = discountPrices[i];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+    
+                                if (minPrice === CONSTANTS.MATH_INFINITY || minPrice === CONSTANTS.MATH_NEG_INFINITY) {
+                                    console.log(CONSTANTS.MSG_NO_VALID_PRICES);
+                                    minPrice = undefined;
+                                } else {
+                                    console.log(useMaxPrice ? CONSTANTS.MSG_HIGHEST_PRICE : CONSTANTS.MSG_LOWEST_PRICE, minPrice);
+                                }
+                                
+                                if (minElement) {
+                                    container = minElement.closest(CONSTANTS.SELECTOR_LEGEND_SECTION);
+                                    if (container) {
+                                        relatedSeatTitle = container.querySelector(CONSTANTS.SELECTOR_SEAT_TITLE);
+                                        if (relatedSeatTitle) {
+                                            relatedSeatTitle = relatedSeatTitle.textContent.trim();
+                                        }
+                                    }
+                                    
+                                    if (relatedSeatTitle === CONSTANTS.TITLE_EXIT_ROW) {
+                                        selector = CONSTANTS.SELECTOR_EXIT_ROW;
+                                    } else if (relatedSeatTitle === CONSTANTS.TITLE_BULKHEAD) {
+                                        selector = CONSTANTS.SELECTOR_BULKHEAD;
+                                    } else if (relatedSeatTitle === CONSTANTS.TITLE_FORWARD_ZONE) {
+                                        selector = CONSTANTS.SELECTOR_FORWARD_ZONE;
+                                    } else if (relatedSeatTitle === CONSTANTS.TITLE_MIDDLE_ZONE) {
+                                        selector = CONSTANTS.SELECTOR_MIDDLE_ZONE;
+                                    } else if (relatedSeatTitle === CONSTANTS.TITLE_REAR_ZONE) {
+                                        selector = CONSTANTS.SELECTOR_REAR_ZONE;
+                        } else {
+                                        relatedSeatTitle = null;
+                                    }
+                                }
+                            }
+    
+                            seatmapElement = docQuerySelector(CONSTANTS.SELECTOR_SEATMAP);
+                            // Set up seatmap matrix handlers when element is found
+                            if (seatmapElement) {
+                                setupSeatmapMatrixHandlers();
+                            }
+                            frontSeats = seatmapElement ? (selector ? seatmapElement.querySelectorAll(CONSTANTS.SELECTOR_AVAILABLE + ':not(.free-seat)') : seatmapElement.querySelectorAll(CONSTANTS.SELECTOR_FRONT_SEAT + ':not(.free-seat)')) : null;
+    
+                            // seat highlighting logic - calculates based on availability
+                            if (!(seatTDNA && seatTDNA.length > 0)) {
+                                var windowSeats = [];
+                                var aisleSeats = [];
+                                var seatChar;
+                                var seatCharLower;
+                                var seatElement;
+                                var totalSeats;
+                                var windowPercentage;
+                                var windowRatio;
+                                var filteredSeats;
+                                var seat;
+                                
+                                var collectSeats = function(seats) {
+                                    var i;
+                                    var len = seats.length;
+                                    for (i = 0; i < len; i++) {
+                                        seat = seats[i];
+                                        seatElement = seat.querySelector(CONSTANTS.SELECTOR_SEAT_CHAR);
+                                        if (seatElement) {
+                                            seatChar = seatElement.innerHTML;
+                                            if (seatChar) {
+                                                seatCharLower = seatChar.trim().toLowerCase();
+                                                if (seatCharLower.indexOf(CONSTANTS.STR_WINDOW) !== -1) {
+                                                    windowSeats.push(seat);
+                                                } else if (seatCharLower.indexOf(CONSTANTS.STR_AISLE) !== -1) {
+                                                    aisleSeats.push(seat);
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+                                
+                                if (selector && selector.length > 0 && frontSeats) {
+                                    filteredSeats = [];
+                                    len = frontSeats.length;
+                                    for (i = 0; i < len; i++) {
+                                        if (frontSeats[i].classList.contains(selector)) {
+                                            filteredSeats.push(frontSeats[i]);
+                                        }
+                                    }
+                                    collectSeats(filteredSeats);
+                                } else if (frontSeats) {
+                                    collectSeats(frontSeats);
+                                }
+                                
+                                totalSeats = windowSeats.length + aisleSeats.length;
+                                windowPercentage = totalSeats > 0 ? (windowSeats.length / totalSeats) * 100 : 0;
+                                
+                                console.log(CONSTANTS.MSG_TOTAL_SEATS + totalSeats + ", " + CONSTANTS.MSG_WINDOW + windowSeats.length + " (" + windowPercentage.toFixed(1) + "%), " + CONSTANTS.MSG_AISLE + aisleSeats.length);
+                                
+                                var targetWindowCount;
+                                var targetAisleCount;
+                                var windowSeatsLen = windowSeats.length;
+                                var aisleSeatsLen = aisleSeats.length;
+                                
+                                if (windowSeatsLen === 0 && aisleSeatsLen > 0) {
+                                    targetWindowCount = 0;
+                                    targetAisleCount = aisleSeatsLen < heighLightLimit ? aisleSeatsLen : heighLightLimit;
+                                    console.log(CONSTANTS.MSG_ONLY_AISLE);
+                                } else if (aisleSeatsLen === 0 && windowSeatsLen > 0) {
+                                    targetWindowCount = windowSeatsLen < heighLightLimit ? windowSeatsLen : heighLightLimit;
+                                    targetAisleCount = 0;
+                                    console.log(CONSTANTS.MSG_ONLY_WINDOW);
+                                } else if (windowPercentage >= CONSTANTS.WINDOW_PERCENTAGE_THRESHOLD) {
+                                    targetWindowCount = Math.ceil(heighLightLimit * CONSTANTS.WINDOW_SPLIT_RATIO);
+                                    targetAisleCount = heighLightLimit - targetWindowCount;
+                                    targetWindowCount = targetWindowCount < windowSeatsLen ? targetWindowCount : windowSeatsLen;
+                                    targetAisleCount = targetAisleCount < aisleSeatsLen ? targetAisleCount : aisleSeatsLen;
+                                } else {
+                                    windowRatio = windowSeatsLen / totalSeats;
+                                    targetWindowCount = Math.ceil(heighLightLimit * windowRatio * CONSTANTS.WINDOW_RATIO_MULTIPLIER);
+                                    if (targetWindowCount > windowSeatsLen) targetWindowCount = windowSeatsLen;
+                                    if (targetWindowCount > heighLightLimit) targetWindowCount = heighLightLimit;
+                                    targetAisleCount = heighLightLimit - targetWindowCount;
+                                    var aisleTarget = Math.ceil(aisleSeatsLen * CONSTANTS.AISLE_SPLIT_RATIO);
+                                    if (targetAisleCount > aisleTarget) targetAisleCount = aisleTarget;
+                                }
+                                
+                                if (windowSeatsLen > 0 && aisleSeatsLen > 0) {
+                                    if (targetWindowCount > windowSeatsLen) targetWindowCount = windowSeatsLen;
+                                    if (targetWindowCount > heighLightLimit) targetWindowCount = heighLightLimit;
+                                    if (targetAisleCount > aisleSeatsLen) targetAisleCount = aisleSeatsLen;
+                                    if (targetAisleCount > (heighLightLimit - heighLightCount)) {
+                                        targetAisleCount = heighLightLimit - heighLightCount;
+                                    }
+                                }
+                                
+                                console.log(CONSTANTS.MSG_TARGET + targetWindowCount + CONSTANTS.MSG_WINDOW_SEAT + targetAisleCount + CONSTANTS.MSG_AISLE_SEAT);
+                                
+                                // Collect all recommended seats
+                                var recommendedSeatsArray = [];
+                                var windowHighlighted = 0;
+                                var aisleHighlighted = 0;
+                                
+                                for (i = 0; i < windowSeatsLen && windowHighlighted < targetWindowCount && heighLightCount < heighLightLimit; i++) {
+                                    seat = windowSeats[i];
+                                    seatElement = seat.querySelector(CONSTANTS.SELECTOR_SEAT_CHAR);
+                                    seatChar = seatElement ? seatElement.innerHTML.trim() : "";
+                                    console.log(CONSTANTS.MSG_HIGHLIGHTING_WINDOW, seatChar, CONSTANTS.MSG_COUNT, heighLightCount);
+                                    recommendedSeatsArray.push({ seat: seat, type: CONSTANTS.STR_WINDOW_SEAT });
+                                    heighLightCount++;
+                                    windowHighlighted++;
+                                }
+                                
+                                for (i = 0; i < aisleSeatsLen && aisleHighlighted < targetAisleCount && heighLightCount < heighLightLimit; i++) {
+                                    seat = aisleSeats[i];
+                                    seatElement = seat.querySelector(CONSTANTS.SELECTOR_SEAT_CHAR);
+                                    seatChar = seatElement ? seatElement.innerHTML.trim() : "";
+                                    console.log(CONSTANTS.MSG_HIGHLIGHTING_AISLE, seatChar, CONSTANTS.MSG_COUNT, heighLightCount);
+                                    recommendedSeatsArray.push({ seat: seat, type: CONSTANTS.STR_AISLE_SEAT });
+                                    heighLightCount++;
+                                    aisleHighlighted++;
+                                }
+                                
+                                console.log(CONSTANTS.MSG_HIGHLIGHTED + windowHighlighted + " window, " + aisleHighlighted + " aisle seats");
+                                
+                                // Show single nudge with navigation
+                                if (recommendedSeatsArray.length > 0) {
+                                    hasRecommendedSeats = true;
+                                    showNudgeWithNavigation(recommendedSeatsArray);
+                                }
+                    } else {
+                                var preferredType = seatTDNA;
+                                var isWindowSeat;
+                                var isAisleSeat;
+                                var recommendedSeatsArray = [];
+                                console.log(CONSTANTS.MSG_USING_PREFERENCE, preferredType);
+                                
+                                if (frontSeats) {
+                                    len = frontSeats.length;
+                                    for (i = 0; i < len && heighLightCount < heighLightLimit; i++) {
+                                        seat = frontSeats[i];
+                                        if (selector && selector.length > 0 && !seat.classList.contains(selector)) {
+                                            continue;
+                                        }
+                                        seatElement = seat.querySelector(CONSTANTS.SELECTOR_SEAT_CHAR);
+                                        if (seatElement) {
+                                            seatChar = seatElement.innerHTML;
+                                            if (seatChar) {
+                                                seatCharLower = seatChar.trim().toLowerCase();
+                                                isWindowSeat = seatCharLower.indexOf(CONSTANTS.STR_WINDOW) !== -1;
+                                                isAisleSeat = seatCharLower.indexOf(CONSTANTS.STR_AISLE) !== -1;
+                                                
+                                                if ((isWindowSeat && preferredType === CONSTANTS.STR_WINDOW_UPPER) ||
+                                                    (isAisleSeat && preferredType === CONSTANTS.STR_AISLE_UPPER)) {
+                                                    console.log(CONSTANTS.MSG_HIGHLIGHTING_SEAT, seatChar.trim(), CONSTANTS.MSG_PREFERRED, preferredType, CONSTANTS.MSG_COUNT, heighLightCount);
+                                                    recommendedSeatsArray.push({ 
+                                                        seat: seat, 
+                                                        type: preferredType === CONSTANTS.STR_WINDOW_UPPER ? CONSTANTS.STR_WINDOW_SEAT : CONSTANTS.STR_AISLE_SEAT 
+                                                    });
+                                                    heighLightCount++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Show single nudge with navigation
+                                if (recommendedSeatsArray.length > 0) {
+                                    hasRecommendedSeats = true;
+                                    showNudgeWithNavigation(recommendedSeatsArray);
+                                }
+                            }
+    
+                            var legendDesktop = docQuerySelector(CONSTANTS.SELECTOR_LEGEND_DESKTOP);
+                            if (!docQuerySelector(CONSTANTS.SELECTOR_LEGEND_LABEL) && legendDesktop && hasRecommendedSeats) {
+                                var ul = docCreateElement("ul");
+                                ul.classList.add(CONSTANTS.CLASS_LEGEND_SECTION, CONSTANTS.CLASS_LEGEND_SEATS);
+                                var li = docCreateElement("li");
+                                li.classList.add(CONSTANTS.CLASS_LEGEND_ROW, CONSTANTS.CLASS_FACILITIES_LIST, CONSTANTS.CLASS_NG_STAR_INSERTED);
+                                li.innerHTML = "<div class=\"" + CONSTANTS.CLASS_LEGEND_TITLE + " " + CONSTANTS.SELECTOR_LEGEND_LABEL.substring(1) + "\"><div class=\"" + CONSTANTS.CLASS_HIGHLIGHTED_SEAT + " " + CONSTANTS.CLASS_REC_ICON + "\"></div> Recommended For You</div>";
+                                ul.appendChild(li);
+                                legendDesktop.appendChild(ul);
+                            }
+                          		     var legendMobile =document.querySelector(".seatmap-legend-mobile .legend-container .legend-mobile .mat-expansion-panel .mat-expansion-panel-content .mat-expansion-panel-body");
+                            if (!docQuerySelector(CONSTANTS.SELECTOR_LEGEND_LABEL_MOBILE) && legendMobile && hasRecommendedSeats) {
+                                var ul = docCreateElement("ul");
+                                ul.classList.add(CONSTANTS.CLASS_LEGEND_SECTION, CONSTANTS.CLASS_LEGEND_SEATS);
+                                var li = docCreateElement("li");
+                                li.classList.add(CONSTANTS.CLASS_LEGEND_ROW, CONSTANTS.CLASS_FACILITIES_LIST, CONSTANTS.CLASS_NG_STAR_INSERTED);
+                                li.innerHTML = "<div class=\"" + CONSTANTS.CLASS_LEGEND_TITLE + " " + CONSTANTS.SELECTOR_LEGEND_LABEL_MOBILE.substring(1) + "\"><div class=\"" + CONSTANTS.CLASS_HIGHLIGHTED_SEAT + " " + CONSTANTS.CLASS_REC_ICON + "\"></div> Recommended For You</div>";
+                                ul.appendChild(li);
+                                legendMobile.appendChild(ul);
+                            }
+                        }
+                    }
+                    
+          /*    document.querySelector(".confirm-seat-button")?.onclick = function() {
+clearOldNudges();
+};*/
+                    // Tab click functionality
+                    var tabList = docQuerySelector(CONSTANTS.SELECTOR_TAB_LIST);
+                    var tabsLength = tabList ? tabList.querySelectorAll(CONSTANTS.SELECTOR_TAB) : null;
+                    var tab;
+                    var tabClickHandler;
+                    var len;
+                    var i;
+    
+                    if (tabsLength) {
+                        len = tabsLength.length;
+                        for (i = 0; i < len; i++) {
+                            tab = tabsLength[i];
+                            tab._ranHighlight = false;
+                            tabClickHandler = function(tabElement) {
+                                return function() {
+                                    if (tabElement._ranHighlight) return;
+                                    tabElement._ranHighlight = true;
+                                    setTimeout(function() {
+                                        executedSeat = false;
+                                        highlightSeats();
+                                    }, CONSTANTS.TAB_CLICK_DELAY);
+                                };
+                            }(tab);
+                            tab.addEventListener("click", tabClickHandler);
+                        }
+                    }
+                    
+                    if (!clickedFirst) {
+                        if (tabsLength && tabsLength.length > 0) {
+                            tabsLength[0].click();
+                            clickedFirst = true;
+                        } else {
+                            // If no tabs, call highlightSeats directly
+                            highlightSeats();
+                            clickedFirst = true;
+                        }
+                    }
+
+                }
+            }
+        );
+    </script>
+    
+    <style>
+        .highlighted-seat {
+            background-color: orange !important;
+            border: 2px solid red !important;
+        }
+    
+        .rec-icon {
+            width: 16px;
+            height: 16px;
+            background-color: orange;
+            border: 2px solid red;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+      .seatnudge{
+        display:flex !important
+      }
+    </style>
