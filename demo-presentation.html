@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Seats Recommendation - Demo Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff3333 0%, #ff4444 50%, #ff5555 100%);
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .carousel-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .carousel-track {
+            display: flex;
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: transform;
+            height: 100%;
+            transform: translateX(0);
+        }
+
+        .slide {
+            min-width: 100vw;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+            position: relative;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .slide-content {
+            width: 90%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
+            padding: 60px;
+            padding-bottom: 80px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.6s ease-out;
+            position: relative;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #ff4444;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #ff4444;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin: 30px 0 15px 0;
+        }
+
+        .title-slide {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+        }
+
+        .powered-by-adobe {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .adobe-logo {
+            height: 32px;
+            width: auto;
+        }
+
+        .powered-by-text {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .adobe-target-badge {
+            font-size: 1.1em;
+            color: #ff4444;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .powered-by-footer {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85em;
+            color: #7f8c8d;
+            opacity: 0.8;
+            z-index: 100;
+        }
+
+        .powered-by-footer-logo {
+            height: 20px;
+            width: auto;
+        }
+
+        .powered-by-footer-text {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .title-slide h1 {
+            font-size: 4em;
+            background: linear-gradient(135deg, #ff3333 0%, #ff4444 50%, #ff5555 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            margin-top: 0;
+        }
+
+        .flight-icon {
+            display: inline-block;
+            animation: fly 3s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 0.3em;
+        }
+
+        .flight-icon img {
+            width: 1.2em;
+            height: 1.2em;
+            object-fit: contain;
+            display: block;
+        }
+
+        @keyframes fly {
+            0%, 100% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-10px) translateX(5px) rotate(-5deg);
+            }
+            50% {
+                transform: translateY(-5px) translateX(10px) rotate(0deg);
+            }
+            75% {
+                transform: translateY(-10px) translateX(5px) rotate(5deg);
+            }
+        }
+
+        .subtitle {
+            font-size: 1.5em;
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul li {
+            padding: 15px 0;
+            padding-left: 40px;
+            position: relative;
+            font-size: 1.3em;
+            color: #34495e;
+        }
+
+        ul li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 1.5em;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #ff4444;
+        }
+
+        .feature-card h4 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .demo-image {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .demo-image img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .navigation {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            z-index: 1000;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #2c3e50;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 68, 68, 0.4);
+            background: linear-gradient(135deg, #ff3333 0%, #ff4444 100%);
+            color: white;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .carousel-indicators {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .indicator.active {
+            background: white;
+            height: 30px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(255, 68, 68, 0.5);
+        }
+
+        .indicator:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: scale(1.2);
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #2c3e50;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .plugin-link-btn {
+            background: linear-gradient(135deg, #ff3333 0%, #ff4444 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(255, 68, 68, 0.3);
+        }
+
+        .plugin-link-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.5);
+            background: linear-gradient(135deg, #ff4444 0%, #ff5555 100%);
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #ff6666 0%, #ff5555 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .architecture-diagram {
+            margin: 40px 0;
+            padding: 30px;
+        }
+
+        .arch-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .arch-component {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #ff4444;
+            border-radius: 15px;
+            padding: 25px 35px;
+            min-width: 300px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .arch-component h4 {
+            color: #ff4444;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .arch-component p {
+            color: #34495e;
+            font-size: 1em;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .arch-arrow {
+            font-size: 2em;
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .arch-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .arch-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .slide.architecture-slide .slide-content {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            overflow: hidden;
+        }
+
+        .slide.architecture-slide .slide-content h2 {
+            flex-shrink: 0;
+            margin-bottom: 20px;
+        }
+
+        .slide.architecture-slide .architecture-diagram {
+            height: 700px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px 30px;
+            margin: 0;
+        }
+
+        .slide.architecture-slide .powered-by-footer {
+            flex-shrink: 0;
+            margin-top: 20px;
+        }
+
+        .slide.architecture-slide .architecture-diagram::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .slide.architecture-slide .architecture-diagram::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .slide.architecture-slide .architecture-diagram::-webkit-scrollbar-thumb {
+            background: rgba(255, 68, 68, 0.5);
+            border-radius: 10px;
+        }
+
+        .slide.architecture-slide .architecture-diagram::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 68, 68, 0.7);
+        }
+
+        .video-container video {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: #000;
+        }
+
+        .video-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 40px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #ff4444;
+        }
+
+        .stat-label {
+            font-size: 1.2em;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="carousel-wrapper">
+            <div class="carousel-track" id="carouselTrack">
+                <!-- Slide 1: Title -->
+                <div class="slide active title-slide">
+                    <div class="slide-content">
+                        <div class="adobe-target-badge">Adobe Target</div>
+                        <h1><span class="flight-icon"><img src="animated.gif" alt="Airplane"></span> Flight Seats Recommendation</h1>
+                        <p class="subtitle">Intelligent Seat Selection Enhancement System</p>
+                        <div class="demo-image" style="margin: 30px 0;">
+                            <img src="first-screen.png" alt="Flight Seats Recommendation Interface" style="max-width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                        </div>
+                        <p style="margin-top: 20px; font-size: 1.2em; color: #7f8c8d;">
+                            Personalized seat recommendations with interactive nudge interface
+                        </p>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Overview -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>🎯 Overview</h2>
+                        <div style="margin-top: 30px;">
+                            <ol style="font-size: 1.2em; line-height: 2; color: #34495e; padding-left: 40px;">
+                                <li style="margin-bottom: 15px;">
+                                    <strong>Check Edge Profile Data</strong> - Retrieves user's last booking seat preferences from Adobe Experience Platform (AEP) Edge profile data
+                                </li>
+                                <li style="margin-bottom: 15px;">
+                                    <strong>Fetch Seat Characteristics</strong> - Determines preferred seat type (Aisle or Window) based on user's historical booking data
+                                </li>
+                                <li style="margin-bottom: 15px;">
+                                    <strong>Intelligent Seat Selection</strong> - If user data is not available, uses intelligent algorithms with 70/30 Window/Aisle distribution
+                                </li>
+                                <li style="margin-bottom: 15px;">
+                                    <strong>Price-Based Selection</strong> - Analyzes strike-through prices to identify premium seat sections (Exit row, Bulkhead, Zones)
+                                </li>
+                                <li style="margin-bottom: 15px;">
+                                    <strong>Minimum Recommendations</strong> - Recommends minimum 5 seats (configurable) based on client requirements
+                                </li>
+                                <li style="margin-bottom: 15px;">
+                                    <strong>Smart Distribution</strong> - Uses permutation and combination logic to avoid recommending seats on a single row, checks seat availability and ensures seats are not already filled
+                                </li>
+                            </ol>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Demo Image -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>📸 Live Demo</h2>
+                        <div class="demo-image">
+                            <img src="seats-image.png" alt="Flight Seats Recommendation Interface">
+                        </div>
+                        <p style="text-align: center; font-size: 1.2em; color: #7f8c8d; margin-top: 20px;">
+                            Interactive seat map with highlighted recommendations and nudge interface
+                        </p>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Architecture Diagram -->
+                <div class="slide architecture-slide">
+                    <div class="slide-content">
+                        <h2>🏗️ System Architecture</h2>
+                        <div class="architecture-diagram">
+                            <div class="arch-flow">
+                                <div class="arch-component">
+                                    <h4>🔷 Adobe Experience Platform (AEP) Edge</h4>
+                                    <p>Real-time user profile data and segmentation</p>
+                                </div>
+                                <div class="arch-arrow">↓</div>
+                                <div class="arch-row">
+                                    <div class="arch-branch">
+                                        <div class="arch-component">
+                                            <h4>👤 User Profile Data</h4>
+                                            <p>Last booking preferences<br>Seat characteristics (Window/Aisle)<br>Guest ID & preferences</p>
+                                        </div>
+                                        <div class="arch-arrow">↓</div>
+                                    </div>
+                                    <div class="arch-branch">
+                                        <div class="arch-component">
+                                            <h4>🎯 Adobe Target</h4>
+                                            <p>Profile data integration<br>Target parameters<br>Decision scopes</p>
+                                        </div>
+                                        <div class="arch-arrow">↓</div>
+                                    </div>
+                                </div>
+                                <div class="arch-component">
+                                    <h4>🧠 Intelligent Seat Selection Algorithm</h4>
+                                    <p>Analyzes seat availability, pricing, and user preferences<br>Applies 70/30 Window/Aisle distribution<br>Price-based filtering & smart permutation logic</p>
+                                </div>
+                                <div class="arch-arrow">↓</div>
+                                <div class="arch-row">
+                                    <div class="arch-branch">
+                                        <div class="arch-component">
+                                            <h4>✨ Seat Recommendations</h4>
+                                            <p>Minimum 5 recommended seats<br>Distributed across multiple rows<br>Based on availability & preferences</p>
+                                        </div>
+                                        <div class="arch-arrow">↓</div>
+                                    </div>
+                                </div>
+                                <div class="arch-component">
+                                    <h4>🎨 User Interface</h4>
+                                    <p>Interactive nudge panel<br>Visual seat highlights<br>One-click booking confirmation</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 5: AEP TDNA Attributes Video -->
+                <div class="slide video-slide">
+                    <div class="slide-content">
+                        <h2>🎬 Seats Recommendation with AEP TDNA Attributes</h2>
+                        <div class="video-container">
+                            <video id="tdna-video" controls muted loop>
+                                <source src="seats-tdna.webm" type="video/webm">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <p style="text-align: center; font-size: 1.1em; color: #7f8c8d; margin-top: 20px;">
+                            Demonstration of seat recommendations powered by Adobe Experience Platform TDNA attributes
+                        </p>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 6: Fresh User Video -->
+                <div class="slide video-slide">
+                    <div class="slide-content">
+                        <h2>🎬 Seats Recommendation for Fresh User</h2>
+                        <div class="video-container">
+                            <video id="fresh-user-video" controls muted loop>
+                                <source src="screen-capture-without-tdns.webm" type="video/webm">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <p style="text-align: center; font-size: 1.1em; color: #7f8c8d; margin-top: 20px;">
+                            Demonstration of seat recommendations for users without prior booking history
+                        </p>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 7: Key Features -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>✨ Key Features</h2>
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <h4>🔍 AEP Edge Segmentation</h4>
+                                <p>Leverages comprehensive Adobe Experience Platform (AEP) Edge segmentation to analyze user's last booking preferences, enabling highly personalized seat recommendations based on historical behavior</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>⚡ One-Click Seat Booking</h4>
+                                <p>Streamlines the user journey with a simplified booking experience, allowing users to confirm their preferred seat with a single click through an intuitive nudge interface</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>💰 Smart Price-Based Recommendations</h4>
+                                <p>Intelligently recommends seats based on lowest available prices and strategic placement within economy and business class rows, optimizing value while maintaining comfort preferences</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>🎨 Visual Highlights & Navigation</h4>
+                                <p>Orange highlighted seats with interactive tooltips, smooth scrolling, and intuitive navigation controls for enhanced user experience</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>📈 Increased Conversions</h4>
+                                <p>Faster seat selection leads to higher booking completion rates</p>
+                            </div>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 8: How It Works -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>⚙️ How It Works</h2>
+                        <ul style="margin-top: 40px;">
+                            <li>Analyzes user's saved seat preferences (Window/Aisle)</li>
+                            <li>Evaluates seat availability and pricing information</li>
+                            <li>Considers seat characteristics (Exit row, Bulkhead, Zones)</li>
+                            <li>Applies intelligent 70/30 Window/Aisle distribution algorithm</li>
+                            <li>Highlights up to 5 best recommended seats</li>
+                            <li>Displays interactive nudge with navigation controls</li>
+                            <li>Provides tooltips and smooth scrolling to seats</li>
+                        </ul>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 9: Algorithm -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>🧮 Smart Algorithm</h2>
+                        <div style="margin-top: 40px;">
+                            <h3>Seat Selection Process:</h3>
+                            <ol style="font-size: 1.3em; line-height: 2; color: #34495e; margin-top: 20px; padding-left: 40px;">
+                                <li><strong>Check User Preference</strong> - Uses saved WINDOW/AISLE preference if available</li>
+                                <li><strong>Price-Based Filtering</strong> - Finds highest/lowest priced seat sections</li>
+                                <li><strong>Seat Collection</strong> - Collects available window and aisle seats</li>
+                                <li><strong>Distribution Calculation</strong> - 70% window, 30% aisle when available</li>
+                                <li><strong>Highlighting</strong> - Highlights window seats first, then aisle seats</li>
+                            </ol>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 10: User Experience -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>👤 User Experience</h2>
+                        <div class="feature-grid" style="margin-top: 40px;">
+                            <div class="feature-card">
+                                <h4>🎯 Personalized</h4>
+                                <p>Recommendations based on user's historical preferences and behavior</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>⚡ Fast & Efficient</h4>
+                                <p>Instant seat analysis and highlighting with smooth animations</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>🎨 Visual Clarity</h4>
+                                <p>Clear orange highlights, tooltips, and legend indicators</p>
+                            </div>
+                            <div class="feature-card">
+                                <h4>📱 Mobile Friendly</h4>
+                                <p>Fully responsive design with mobile-optimized interface</p>
+                            </div>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 11: Technical Details -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>🔧 Technical Implementation</h2>
+                        <ul style="margin-top: 40px;">
+                            <li>Flickerlessly library for DOM element detection</li>
+                            <li>Adobe Experience Platform (AEP) integration</li>
+                            <li>Adobe Target for profile data</li>
+                            <li>Optimized performance with cached selectors</li>
+                            <li>Event-driven architecture with cleanup handlers</li>
+                            <li>Cross-browser compatibility (Chrome, Firefox, Safari, Edge)</li>
+                        </ul>
+                        <div class="code-block" style="margin-top: 30px;">
+                            <div>CONSTANTS.HIGHLIGHT_LIMIT = 5</div>
+                            <div>CONSTANTS.WINDOW_SPLIT_RATIO = 0.7</div>
+                            <div>CONSTANTS.SHOW_TOOLTIP = true</div>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 12: Thank You -->
+                <div class="slide title-slide">
+                    <div class="slide-content">
+                        <h1>Thank You!</h1>
+                        <p class="subtitle" style="margin-top: 40px;">Questions & Discussion</p>
+                        <p style="margin-top: 60px; font-size: 1.2em; color: #7f8c8d;">
+                            Flight Seats Recommendation System
+                        </p>
+                        <p style="margin-top: 20px; font-size: 1em; color: #95a5a6;">
+                            Adobe Seats Recommendation Plugin
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">10</span>
+        <a href="https://github.com/adobemohit/Adobe-flight-seats-reccomendation-with-Edge-TDNA" target="_blank" class="plugin-link-btn">Go to Plugin</a>
+    </div>
+
+    <div class="carousel-indicators" id="carouselIndicators"></div>
+
+    <div class="navigation">
+        <button class="nav-btn" id="prev-btn" onclick="changeSlide(-1)">← Previous</button>
+        <button class="nav-btn" id="next-btn" onclick="changeSlide(1)">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const carouselTrack = document.getElementById('carouselTrack');
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const indicatorsContainer = document.getElementById('carouselIndicators');
+        
+        // Initialize total slides counter
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        // Create carousel indicators
+        function createIndicators() {
+            for (let i = 0; i < totalSlides; i++) {
+                const indicator = document.createElement('div');
+                indicator.className = 'indicator';
+                if (i === 0) indicator.classList.add('active');
+                indicator.addEventListener('click', () => goToSlide(i));
+                indicatorsContainer.appendChild(indicator);
+            }
+        }
+
+        // Update carousel position
+        function updateCarousel() {
+            const translateX = -currentSlide * 100;
+            carouselTrack.style.transform = `translateX(${translateX}vw)`;
+            
+            // Update active slide
+            slides.forEach((slide, index) => {
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            
+            // Update indicators
+            const indicators = document.querySelectorAll('.indicator');
+            indicators.forEach((indicator, index) => {
+                if (index === currentSlide) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
+            });
+            
+            // Update slide counter
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+            
+            // Update navigation buttons
+            document.getElementById('prev-btn').disabled = currentSlide === 0;
+            document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
+            
+            // Control video playback
+            const tdnaVideo = document.getElementById('tdna-video');
+            const freshUserVideo = document.getElementById('fresh-user-video');
+            const currentSlideElement = slides[currentSlide];
+            
+            // Get all video slides to check which one is active
+            const videoSlides = document.querySelectorAll('.video-slide');
+            const isVideoSlide = currentSlideElement && currentSlideElement.classList.contains('video-slide');
+            
+            // Control TDNA video
+            if (tdnaVideo) {
+                if (isVideoSlide && currentSlideElement === videoSlides[0]) {
+                    // Play TDNA video when its slide is active
+                    tdnaVideo.play().catch(err => {
+                        console.log('TDNA Video autoplay prevented:', err);
+                    });
+                } else {
+                    // Pause TDNA video when leaving its slide
+                    tdnaVideo.pause();
+                }
+            }
+            
+            // Control Fresh User video
+            if (freshUserVideo) {
+                if (isVideoSlide && currentSlideElement === videoSlides[1]) {
+                    // Play Fresh User video when its slide is active
+                    freshUserVideo.play().catch(err => {
+                        console.log('Fresh User Video autoplay prevented:', err);
+                    });
+                } else {
+                    // Pause Fresh User video when leaving its slide
+                    freshUserVideo.pause();
+                }
+            }
+        }
+
+        // Go to specific slide
+        function goToSlide(index) {
+            if (index >= 0 && index < totalSlides) {
+                currentSlide = index;
+                updateCarousel();
+            }
+        }
+
+        // Change slide by direction
+        function changeSlide(direction) {
+            const newSlide = currentSlide + direction;
+            if (newSlide >= 0 && newSlide < totalSlides) {
+                currentSlide = newSlide;
+                updateCarousel();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft' && currentSlide > 0) {
+                changeSlide(-1);
+            }
+            if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) {
+                changeSlide(1);
+            }
+        });
+
+        // Touch/swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        carouselTrack.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        carouselTrack.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0 && currentSlide < totalSlides - 1) {
+                    // Swipe left - next slide
+                    changeSlide(1);
+                } else if (diff < 0 && currentSlide > 0) {
+                    // Swipe right - previous slide
+                    changeSlide(-1);
+                }
+            }
+        }
+
+        // Initialize carousel
+        function initializeCarousel() {
+            // Set initial slide to 0
+            currentSlide = 0;
+            // Create indicators
+            createIndicators();
+            // Update carousel to show first slide centered
+            updateCarousel();
+            // Force initial position
+            carouselTrack.style.transform = 'translateX(0vw)';
+        }
+
+        // Run initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeCarousel);
+        } else {
+            initializeCarousel();
+        }
+    </script>
+</body>
+</html>
