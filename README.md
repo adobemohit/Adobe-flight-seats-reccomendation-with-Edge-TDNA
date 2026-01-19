@@ -6,7 +6,7 @@
 
 ## 📸 Preview
 
-![Flight Seats Recommendation Interface](Screenshot%202026-01-19%20at%209.14.35%20PM.png)
+![Flight Seats Recommendation Interface](seats-image.png)
 
 *The interface displays:*
 - 🟠 **Orange highlighted seats** - Recommended seat options
