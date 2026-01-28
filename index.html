@@ -33,16 +33,17 @@
 
         .carousel-track {
             display: flex;
+            flex-direction: column;
             transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             will-change: transform;
-            height: 100%;
-            transform: translateX(0);
+            width: 100%;
+            transform: translateY(0);
         }
 
         .slide {
-            min-width: 100vw;
-            width: 100vw;
+            min-height: 100vh;
             height: 100vh;
+            width: 100vw;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -558,7 +559,40 @@
                     </div>
                 </div>
 
-                <!-- Slide 2: Overview -->
+                <!-- Slide 2: Use Case for Etihad -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>📋 Use Case for Etihad</h2>
+                        <div style="margin-top: 40px;">
+                            <div style="margin-bottom: 30px;">
+                                <h3 style="color: #ff4444; font-size: 1.5em; margin-bottom: 15px;">Priority 1: Promotional Discount Seats</h3>
+                                <p style="font-size: 1.2em; line-height: 1.8; color: #34495e; padding-left: 20px;">
+                                    Seats with promotional discounts (e.g., Bulkhead seats) to be prioritized. These seats can be identified based on a strike-through on the UI.
+                                </p>
+                            </div>
+                            <div style="margin-bottom: 30px;">
+                                <h3 style="color: #ff4444; font-size: 1.5em; margin-bottom: 15px;">Priority 2: Front of Aircraft Seats</h3>
+                                <p style="font-size: 1.2em; line-height: 1.8; color: #34495e; padding-left: 20px; margin-bottom: 15px;">
+                                    Seats from the front of the aircraft to be recommended (either Aisle or Window)
+                                </p>
+                                <div style="padding-left: 40px;">
+                                    <p style="font-size: 1.1em; line-height: 1.8; color: #34495e; margin-bottom: 10px;">
+                                        <strong>a.</strong> If user has a Preferred Seat in TDNA, then the corresponding seat to be recommended (Aisle, Window and Bulkhead to be considered for now)
+                                    </p>
+                                    <p style="font-size: 1.1em; line-height: 1.8; color: #34495e;">
+                                        <strong>b.</strong> Else, Aisle or Window from the front row to be recommended
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Overview -->
                 <div class="slide">
                     <div class="slide-content">
                         <h2>🎯 Overview</h2>
@@ -591,7 +625,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 3: Demo Image -->
+                <!-- Slide 4: Demo Image -->
                 <div class="slide">
                     <div class="slide-content">
                         <h2>📸 Live Demo</h2>
@@ -608,7 +642,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 4: Architecture Diagram -->
+                <!-- Slide 5: Architecture Diagram -->
                 <div class="slide architecture-slide">
                     <div class="slide-content">
                         <h2>🏗️ System Architecture</h2>
@@ -662,7 +696,56 @@
                     </div>
                 </div>
 
-                <!-- Slide 5: AEP TDNA Attributes Video -->
+                <!-- Slide 6: Sending Preferred Seats Data to AEP -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>📤 Sending Users Preferred Seats Data to AEP Through Checkout Page</h2>
+                        <div style="margin-top: 40px;">
+                            <div class="code-block" style="margin-top: 20px; text-align: left;">
+                                <div style="color: #ecf0f1; font-family: 'Courier New', monospace; font-size: 1em; line-height: 1.8;">
+                                    <div>alloy("sendEvent", {</div>
+                                    <div style="padding-left: 20px;">xdm: {</div>
+                                    <div style="padding-left: 40px;">_etihadairways: {</div>
+                                    <div style="padding-left: 60px;">guestInfo: {</div>
+                                    <div style="padding-left: 80px;">preferences: {</div>
+                                    <div style="padding-left: 100px;">preferredSeatCharacteristic: "WINDOW"</div>
+                                    <div style="padding-left: 80px;">}</div>
+                                    <div style="padding-left: 60px;">}</div>
+                                    <div style="padding-left: 40px;">},</div>
+                                    <div style="padding-left: 20px;">eventType: "web.webinteraction.linkClicks",</div>
+                                    <div>});</div>
+                                </div>
+                            </div>
+                            <p style="text-align: center; font-size: 1.1em; color: #7f8c8d; margin-top: 30px;">
+                                Sends user's preferred seat characteristic (Window/Aisle) to Adobe Experience Platform during checkout
+                            </p>
+                        </div>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 7: AEP Profiles Data View -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h2>📊 How Data Will Look in AEP Profiles</h2>
+                        <div class="demo-image" style="margin: 30px 0;">
+                            <img src="aep-profiles-screenshot.png" alt="AEP Profiles Data View" style="max-width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                        </div>
+                        <p style="text-align: center; font-size: 1.1em; color: #7f8c8d; margin-top: 20px;">
+                            Profile attributes showing preferredSeatCharacteristic stored in AEP under the path:<br>
+                            <code style="background: #f8f9fa; padding: 5px 10px; border-radius: 5px; color: #ff4444;">_etihadairways.guestInfo.preferences.preferredSeatCharacteristic</code>
+                        </p>
+                        <div class="powered-by-footer">
+                            <span class="powered-by-footer-text">Powered by</span>
+                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 8: AEP TDNA Attributes Video -->
                 <div class="slide video-slide">
                     <div class="slide-content">
                         <h2>🎬 Seats Recommendation with AEP TDNA Attributes</h2>
@@ -682,7 +765,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 6: Fresh User Video -->
+                <!-- Slide 9: Fresh User Video -->
                 <div class="slide video-slide">
                     <div class="slide-content">
                         <h2>🎬 Seats Recommendation for Fresh User</h2>
@@ -702,7 +785,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 7: Key Features -->
+                <!-- Slide 10: Key Features -->
                 <div class="slide">
                     <div class="slide-content">
                         <h2>✨ Key Features</h2>
@@ -739,7 +822,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 8: How It Works -->
+                <!-- Slide 11: How It Works -->
                 <div class="slide">
                     <div class="slide-content">
                         <h2>⚙️ How It Works</h2>
@@ -759,7 +842,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 9: Algorithm -->
+                <!-- Slide 12: Algorithm -->
                 <div class="slide">
                     <div class="slide-content">
                         <h2>🧮 Smart Algorithm</h2>
@@ -780,36 +863,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 10: User Experience -->
-                <div class="slide">
-                    <div class="slide-content">
-                        <h2>👤 User Experience</h2>
-                        <div class="feature-grid" style="margin-top: 40px;">
-                            <div class="feature-card">
-                                <h4>🎯 Personalized</h4>
-                                <p>Recommendations based on user's historical preferences and behavior</p>
-                            </div>
-                            <div class="feature-card">
-                                <h4>⚡ Fast & Efficient</h4>
-                                <p>Instant seat analysis and highlighting with smooth animations</p>
-                            </div>
-                            <div class="feature-card">
-                                <h4>🎨 Visual Clarity</h4>
-                                <p>Clear orange highlights, tooltips, and legend indicators</p>
-                            </div>
-                            <div class="feature-card">
-                                <h4>📱 Mobile Friendly</h4>
-                                <p>Fully responsive design with mobile-optimized interface</p>
-                            </div>
-                        </div>
-                        <div class="powered-by-footer">
-                            <span class="powered-by-footer-text">Powered by</span>
-                            <img src="logo.png" alt="Adobe" class="powered-by-footer-logo">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Slide 11: Technical Details -->
+                <!-- Slide 13: Technical Details -->
                 <div class="slide">
                     <div class="slide-content">
                         <h2>🔧 Technical Implementation</h2>
@@ -833,7 +887,7 @@
                     </div>
                 </div>
 
-                <!-- Slide 12: Thank You -->
+                <!-- Slide 14: Thank You -->
                 <div class="slide title-slide">
                     <div class="slide-content">
                         <h1>Thank You!</h1>
@@ -885,8 +939,8 @@
 
         // Update carousel position
         function updateCarousel() {
-            const translateX = -currentSlide * 100;
-            carouselTrack.style.transform = `translateX(${translateX}vw)`;
+            const translateY = -currentSlide * 100;
+            carouselTrack.style.transform = `translateY(${translateY}vh)`;
             
             // Update active slide
             slides.forEach((slide, index) => {
@@ -969,37 +1023,37 @@
 
         // Keyboard navigation
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'ArrowLeft' && currentSlide > 0) {
+            if (e.key === 'ArrowUp' && currentSlide > 0) {
                 changeSlide(-1);
             }
-            if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) {
+            if (e.key === 'ArrowDown' && currentSlide < totalSlides - 1) {
                 changeSlide(1);
             }
         });
 
         // Touch/swipe support for mobile
-        let touchStartX = 0;
-        let touchEndX = 0;
+        let touchStartY = 0;
+        let touchEndY = 0;
 
         carouselTrack.addEventListener('touchstart', function(e) {
-            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
         });
 
         carouselTrack.addEventListener('touchend', function(e) {
-            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
             handleSwipe();
         });
 
         function handleSwipe() {
             const swipeThreshold = 50;
-            const diff = touchStartX - touchEndX;
+            const diff = touchStartY - touchEndY;
             
             if (Math.abs(diff) > swipeThreshold) {
                 if (diff > 0 && currentSlide < totalSlides - 1) {
-                    // Swipe left - next slide
+                    // Swipe up - next slide
                     changeSlide(1);
                 } else if (diff < 0 && currentSlide > 0) {
-                    // Swipe right - previous slide
+                    // Swipe down - previous slide
                     changeSlide(-1);
                 }
             }
@@ -1014,7 +1068,7 @@
             // Update carousel to show first slide centered
             updateCarousel();
             // Force initial position
-            carouselTrack.style.transform = 'translateX(0vw)';
+            carouselTrack.style.transform = 'translateY(0vh)';
         }
 
         // Run initialization when DOM is ready
